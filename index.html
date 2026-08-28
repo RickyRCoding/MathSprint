@@ -2,8 +2,8 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>MathSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MathSprint — Mental Arithmetic</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,899 +13,521 @@
       theme: {
         extend: {
           colors: {
-            mono: {
-              50: '#f8fafc',
-              100: '#f1f5f9',
-              200: '#e2e8f0',
-              300: '#cbd5e1',
-              400: '#94a3b8',
-              500: '#64748b',
-              600: '#475569',
-              700: '#334155',
-              800: '#1e293b',
-              900: '#0f172a',
-              950: '#030712'
+            canvas: '#0c0d0f',
+            surface: {
+              DEFAULT: '#141619',
+              raised: '#1a1d21',
+              active: '#22262c',
+              border: '#23272e',
+              strong: '#323742'
+            },
+            chalk: {
+              50: '#ffffff',
+              100: '#f5f2eb',
+              200: '#e8e4dc',
+              300: '#d1cdc3',
+              400: '#9da3af',
+              500: '#646b79',
+              600: '#4b5260'
+            },
+            accent: {
+              amber: '#f59e0b',
+              warm: '#e07a5f',
+              cyan: '#38bdf8',
+              emerald: '#10b981'
             }
-          },
-          fontFamily: {
-            sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
           }
         }
       }
     }
   </script>
 
-  <style>
-    * {
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      box-sizing: border-box;
-    }
-    input {
-      user-select: auto;
-    }
+  <!-- Google Material Symbols API -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-    /* Minimalist Shake Animation */
-    @keyframes subtleShake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-4px); }
-      40%, 80% { transform: translateX(4px); }
-    }
-    .shake-card {
-      animation: subtleShake 0.35s ease-in-out;
-    }
+  <!-- Firebase App, Auth & Firestore SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    /* Custom range sliders */
-    input[type=range] {
-      -webkit-appearance: none;
-      background: #1e293b;
-      height: 4px;
-      border-radius: 2px;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      height: 18px;
-      width: 18px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 2px solid #0f172a;
-      cursor: pointer;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    }
-
-    /* Smooth page transitions */
-    .fade-enter {
-      animation: fadeIn 0.2s ease-out forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-black text-slate-100 min-h-screen flex justify-center items-center p-0 font-sans antialiased">
+<body class="bg-[#0c0d0f] text-[#f5f2eb] min-h-screen flex flex-col antialiased selection:bg-[#f5f2eb] selection:text-[#0c0d0f]">
 
-  <!-- Mobile Shell (Clean Minimalist Frame) -->
-  <div class="w-full max-w-[420px] h-[100dvh] bg-mono-950 flex flex-col overflow-hidden relative border-x border-mono-900/60 shadow-2xl">
-    
-    <!-- Top Minimalist Bar: User Tag & Streak -->
-    <header class="px-5 py-3.5 flex items-center justify-between border-b border-mono-900 bg-black/40 backdrop-blur z-20">
-      <div class="flex items-center gap-3">
-        <!-- 4-Letter Tag Button (Click to edit) -->
-        <button id="btnOpenUserModal" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-mono-900 border border-mono-800 text-xs font-mono font-bold tracking-widest text-white hover:border-mono-600 transition-colors">
-          <span class="text-mono-400 text-[10px]">TAG:</span>
-          <span id="headerUserTag">RITA</span>
-          <svg class="w-3 h-3 text-mono-400 ml-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        </button>
+  <!-- Celebration Canvas -->
+  <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full" aria-hidden="true"></canvas>
+
+  <!-- Global Header Navigation Bar (Responsive: Logo only on Mobile/iPad, Logo + Title on Desktop) -->
+  <header class="w-full border-b border-[#23272e] bg-[#0c0d0f] sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-3.5 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+      
+      <!-- Brand Identity (Logo always visible, Title visible on Desktop > iPad) -->
+      <div class="flex items-center gap-2.5 cursor-pointer group" onclick="navigateHome()" role="button" tabindex="0" aria-label="Go to MathSprint Home">
+        <div class="w-8 h-8 rounded-lg bg-[#f5f2eb] text-[#0c0d0f] flex items-center justify-center font-data font-black text-base shadow-sm group-hover:scale-105 transition-transform">
+          ∑
+        </div>
+        <!-- Website name shown on desktop screens (> iPad), hidden on mobile/iPad -->
+        <span class="hidden lg:inline-block font-data font-extrabold tracking-wider text-[#f5f2eb] text-sm uppercase">MATHSPRINT</span>
       </div>
 
-      <!-- Quick Nav & Stats -->
-      <div class="flex items-center gap-2 font-mono text-xs">
-        <div title="Daily Streak" class="flex items-center gap-1 px-2 py-1 rounded-md bg-mono-900/80 border border-mono-800 text-mono-200 font-bold">
-          <span>🔥</span>
+      <!-- Header Statistics & Controls -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        
+        <!-- Daily Streak Indicator -->
+        <div title="Daily Streak" class="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-[#141619] border border-[#23272e] text-xs font-data font-semibold text-[#f5f2eb]">
+          <span class="material-symbols-rounded filled text-amber-500 text-[16px] sm:text-[18px]">local_fire_department</span>
           <span id="headerStreak">0</span>
         </div>
-        <div title="Streak Freezes" class="flex items-center gap-1 px-2 py-1 rounded-md bg-mono-900/80 border border-mono-800 text-mono-300 font-bold">
-          <span>❄️</span>
+
+        <!-- Streak Freezes Indicator -->
+        <div title="Streak Freezes Remaining" class="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-[#141619] border border-[#23272e] text-xs font-data font-semibold text-[#9da3af]">
+          <span class="material-symbols-rounded text-cyan-400 text-[16px] sm:text-[18px]">ac_unit</span>
           <span id="headerFreezes">2</span>
         </div>
-        <button id="btnNavLeaderboard" title="Leaderboard" class="p-1.5 rounded-md bg-mono-900 border border-mono-800 text-mono-300 hover:text-white hover:border-mono-600 transition-all">
-          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/></svg>
+
+        <!-- Points Balance Indicator -->
+        <div title="Total Points Balance" class="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#141619] border border-[#23272e] text-xs font-data font-semibold text-[#f5f2eb]">
+          <span class="material-symbols-rounded filled text-amber-400 text-[16px]">star</span>
+          <span id="headerPoints">0</span>
+        </div>
+
+        <!-- Leaderboard Navigation Button -->
+        <button id="btnNavLeaderboard" title="View Global Leaderboard" class="btn-tactile px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-[#141619] border border-[#23272e] text-xs font-data font-semibold text-[#d1cdc3] hover:text-[#f5f2eb] flex items-center gap-1">
+          <span class="material-symbols-rounded text-[17px] sm:text-[18px]">leaderboard</span>
+          <span class="hidden sm:inline">Leaderboard</span>
         </button>
+
+        <!-- Right User Auth / Profile Button -->
+        <div id="authContainer" class="flex items-center">
+          <button id="btnOpenAuthModal" class="btn-primary-action px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-lg text-xs font-data font-bold">
+            Sign In
+          </button>
+          <button id="btnOpenProfileSettings" title="Profile Settings" class="hidden btn-tactile px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-[#141619] border border-[#23272e] text-xs font-data font-bold text-[#f5f2eb]">
+            <span id="headerUsername" class="max-w-[85px] sm:max-w-[110px] truncate block">User</span>
+          </button>
+        </div>
+
       </div>
-    </header>
-
-    <!-- Global Toast / Alert -->
-    <div id="toastAlert" class="hidden mx-4 mt-3 p-3 rounded-lg bg-mono-900 border border-mono-700 text-xs text-mono-200 flex items-center justify-between z-30">
-      <span id="toastAlertText">Streak Freeze Used to save your streak!</span>
-      <button onclick="document.getElementById('toastAlert').classList.add('hidden')" class="text-mono-400 hover:text-white ml-2 text-sm font-mono">✕</button>
     </div>
+  </header>
 
-    <!-- MAIN APP VIEWPORTS CONTAINER -->
-    <main class="flex-1 overflow-y-auto relative flex flex-col p-5">
+  <!-- Notification Banner -->
+  <div id="toastAlert" class="hidden max-w-xl lg:max-w-2xl mx-auto px-3.5 sm:px-6 w-full mt-2.5">
+    <div class="p-2.5 rounded-lg bg-[#141619] border border-[#323742] text-xs font-data text-[#f5f2eb] flex items-center justify-between shadow-md">
+      <span id="toastAlertText">Streak Freeze saved your streak.</span>
+      <button onclick="document.getElementById('toastAlert').classList.add('hidden')" class="text-[#9da3af] hover:text-[#f5f2eb] ml-2 text-sm" aria-label="Close Notification">✕</button>
+    </div>
+  </div>
 
-      <!-- ================================================= -->
-      <!-- VIEW 1: SETUP & CONFIGURATION                     -->
-      <!-- ================================================= -->
-      <section id="viewSetup" class="fade-enter flex flex-col h-full justify-between gap-5">
+  <!-- MAIN VIEW CONTAINER -->
+  <main class="flex-1 max-w-xl lg:max-w-2xl w-full mx-auto p-3.5 sm:p-6 flex flex-col justify-center">
+
+    <!-- ====================================================================== -->
+    <!-- VIEW 1: SETUP (Responsive: 2x2 Grid on Mobile/iPad, 1x4 Row on Desktop) -->
+    <!-- ====================================================================== -->
+    <section id="viewSetup" class="fade-view space-y-4 sm:space-y-5 w-full">
+      
+      <!-- Headline & Subtitle -->
+      <div class="space-y-0.5 sm:space-y-1">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#f5f2eb] font-data">Configure Workout</h1>
+        <p class="text-xs sm:text-sm text-[#9da3af]">Arithmetic practice with weighted difficulty multipliers.</p>
+      </div>
+
+      <!-- Settings Surface Card -->
+      <div class="surface-card p-4 sm:p-5 lg:p-6 rounded-xl space-y-4 sm:space-y-5">
         
-        <div class="space-y-1">
-          <h1 class="text-xl font-bold tracking-tight text-white">Math Practice</h1>
-          <p class="text-xs text-mono-400">Configure parameters and train mental arithmetic.</p>
-        </div>
-
-        <div class="space-y-4 flex-1">
+        <!-- 1. Arithmetic Operation (2x2 Grid on Mobile/iPad, 1x4 Row on Desktop) -->
+        <div class="space-y-1.5 sm:space-y-2">
+          <div class="flex justify-between items-center text-xs font-data">
+            <span class="uppercase font-semibold tracking-wider text-[#9da3af] text-[11px] sm:text-xs">Operation</span>
+            <span id="labelSelectedOp" class="text-[#f5f2eb] font-bold text-xs sm:text-sm">Multiplication (×)</span>
+          </div>
           
-          <!-- Operation Selector -->
-          <div class="space-y-1.5">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-mono-400">Operation</span>
-            <div class="grid grid-cols-4 gap-2">
-              <button type="button" data-op="+" class="btn-op py-2.5 rounded-lg bg-mono-900 border border-mono-800 text-mono-300 font-mono text-base font-bold hover:border-mono-700 active:scale-95 transition-all">+</button>
-              <button type="button" data-op="-" class="btn-op py-2.5 rounded-lg bg-mono-900 border border-mono-800 text-mono-300 font-mono text-base font-bold hover:border-mono-700 active:scale-95 transition-all">−</button>
-              <button type="button" data-op="*" class="btn-op py-2.5 rounded-lg bg-white border border-white text-black font-mono text-base font-bold shadow active:scale-95 transition-all">×</button>
-              <button type="button" data-op="/" class="btn-op py-2.5 rounded-lg bg-mono-900 border border-mono-800 text-mono-300 font-mono text-base font-bold hover:border-mono-700 active:scale-95 transition-all">÷</button>
-            </div>
-          </div>
-
-          <!-- Operands Digit Controls -->
-          <div class="p-4 rounded-xl bg-mono-900/60 border border-mono-800 space-y-4">
-            <!-- Operand 1 -->
-            <div class="space-y-1.5">
-              <div class="flex justify-between items-center text-xs">
-                <span class="text-mono-300 font-medium">Operand 1 Digits</span>
-                <span id="labelOp1" class="font-mono font-bold text-white">3 <span class="text-mono-500 font-normal text-[10px]">(100-999)</span></span>
-              </div>
-              <input id="sliderOp1" type="range" min="1" max="5" value="3" class="w-full" />
-            </div>
-
-            <!-- Operand 2 -->
-            <div class="space-y-1.5">
-              <div class="flex justify-between items-center text-xs">
-                <span class="text-mono-300 font-medium">Operand 2 Digits</span>
-                <span id="labelOp2" class="font-mono font-bold text-white">2 <span class="text-mono-500 font-normal text-[10px]">(10-99)</span></span>
-              </div>
-              <input id="sliderOp2" type="range" min="1" max="5" value="2" class="w-full" />
-            </div>
-          </div>
-
-          <!-- Question Count Selection -->
-          <div class="space-y-1.5">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-mono-400">Questions</span>
-            <div class="grid grid-cols-4 gap-2">
-              <button type="button" data-count="5" class="btn-count py-2 rounded-lg bg-mono-900 border border-mono-800 text-mono-300 text-xs font-mono font-bold hover:border-mono-700 active:scale-95 transition-all">5</button>
-              <button type="button" data-count="10" class="btn-count py-2 rounded-lg bg-white border border-white text-black text-xs font-mono font-bold shadow active:scale-95 transition-all">10</button>
-              <button type="button" data-count="20" class="btn-count py-2 rounded-lg bg-mono-900 border border-mono-800 text-mono-300 text-xs font-mono font-bold hover:border-mono-700 active:scale-95 transition-all">20</button>
-              <button type="button" id="btnCustomCountToggle" class="btn-count py-2 rounded-lg bg-mono-900 border border-mono-800 text-mono-400 text-xs font-mono font-medium hover:border-mono-700 active:scale-95 transition-all">Custom</button>
-            </div>
-            <div id="customCountBox" class="hidden mt-2 flex gap-2">
-              <input id="inputCustomQuestions" type="number" min="1" max="100" placeholder="Count (1-100)" class="flex-1 px-3 py-1.5 rounded-lg bg-mono-900 border border-mono-700 text-xs font-mono text-white focus:outline-none focus:border-white" />
-              <button id="btnApplyCustomQuestions" type="button" class="px-3 py-1.5 bg-mono-800 hover:bg-mono-700 rounded-lg text-xs font-mono font-bold text-white">Set</button>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Start Button -->
-        <button id="btnStartPractice" type="button" class="w-full py-3.5 rounded-xl bg-white hover:bg-mono-200 text-black font-mono font-bold text-sm tracking-wide transition-all active:scale-[0.99] flex items-center justify-center gap-2">
-          <span>START PRACTICE</span>
-          <span class="text-xs">→</span>
-        </button>
-      </section>
-
-      <!-- ================================================= -->
-      <!-- VIEW 2: GAMEPLAY ENGINE                           -->
-      <!-- ================================================= -->
-      <section id="viewGameplay" class="hidden fade-enter flex flex-col h-full justify-between gap-4">
-        
-        <!-- Header / Progress Bar -->
-        <div class="space-y-2">
-          <div class="flex justify-between items-center text-xs font-mono text-mono-400">
-            <button id="btnQuitSession" class="text-mono-400 hover:text-white">✕ Quit</button>
-            <div class="flex items-center gap-3">
-              <span id="liveTimer">00:00</span>
-              <span id="liveProgress">1 / 10</span>
-            </div>
-          </div>
-          <!-- Minimalist Thin Progress Bar -->
-          <div class="w-full h-1 bg-mono-900 rounded-full overflow-hidden">
-            <div id="progressBar" class="h-full bg-white transition-all duration-200" style="width: 10%;"></div>
-          </div>
-        </div>
-
-        <!-- Question Card -->
-        <div id="gameCard" class="flex-1 flex flex-col items-center justify-center p-6 rounded-2xl border border-mono-900 bg-mono-950 space-y-4">
-          
-          <div class="text-center space-y-2">
-            <div id="displayEquation" class="text-4xl font-mono font-bold tracking-tight text-white">
-              342 × 12 = ?
-            </div>
-
-            <!-- Error Correction Note -->
-            <div id="errorBox" class="hidden p-2.5 rounded-lg bg-red-950/50 border border-red-900 text-xs font-mono text-red-300">
-              Answer: <span id="correctAnswerText" class="font-bold text-white">4104</span>
-            </div>
-          </div>
-
-          <!-- Answer Input -->
-          <div class="w-full max-w-[260px]">
-            <input 
-              id="inputAnswer" 
-              type="number" 
-              inputmode="numeric" 
-              pattern="[0-9]*" 
-              placeholder="?" 
-              autocomplete="off"
-              class="w-full py-3 px-4 rounded-xl bg-mono-900 border border-mono-800 text-center text-2xl font-mono font-bold text-white focus:outline-none focus:border-white transition-colors"
-            />
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="space-y-2">
-          <button id="btnSubmit" type="button" class="w-full py-3.5 rounded-xl bg-white hover:bg-mono-200 text-black font-mono font-bold text-sm tracking-wide transition-all active:scale-[0.99]">
-            SUBMIT (↵)
-          </button>
-          <button id="btnGotIt" type="button" class="hidden w-full py-3.5 rounded-xl bg-mono-800 hover:bg-mono-700 text-white font-mono font-bold text-sm tracking-wide transition-all">
-            GOT IT →
-          </button>
-        </div>
-      </section>
-
-      <!-- ================================================= -->
-      <!-- VIEW 3: POST-GAME SUMMARY                         -->
-      <!-- ================================================= -->
-      <section id="viewSummary" class="hidden fade-enter flex flex-col h-full justify-between gap-4">
-        
-        <div class="space-y-1">
-          <h2 class="text-lg font-bold text-white">Session Complete</h2>
-          <p class="text-xs text-mono-400">Score recorded for <span id="summaryUserTag" class="font-mono text-white font-bold">RITA</span></p>
-        </div>
-
-        <!-- Stats Matrix -->
-        <div class="grid grid-cols-2 gap-2.5 font-mono">
-          <div class="p-3.5 rounded-xl bg-mono-900/60 border border-mono-800">
-            <div class="text-[10px] uppercase text-mono-400">Accuracy</div>
-            <div id="statAccuracy" class="text-xl font-bold text-white mt-0.5">100%</div>
-            <div id="statScoreText" class="text-[10px] text-mono-500">10/10 Correct</div>
-          </div>
-          <div class="p-3.5 rounded-xl bg-mono-900/60 border border-mono-800">
-            <div class="text-[10px] uppercase text-mono-400">Time</div>
-            <div id="statTime" class="text-xl font-bold text-white mt-0.5">00:45</div>
-            <div id="statSpeed" class="text-[10px] text-mono-500">4.5s / question</div>
-          </div>
-          <div class="col-span-2 p-3.5 rounded-xl bg-mono-900/60 border border-mono-800 flex justify-between items-center">
-            <div>
-              <div class="text-[10px] uppercase text-mono-400">Points & Streak</div>
-              <div class="text-xs text-mono-300 mt-0.5">Daily Goal Achieved</div>
-            </div>
-            <div class="text-right">
-              <div id="statPoints" class="text-lg font-bold text-white">+100 PTS</div>
-              <div id="statStreakText" class="text-[10px] text-mono-400">Streak: <span id="statStreakNum" class="text-white">1</span> 🔥</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="space-y-2">
-          <button id="btnViewLeaderboardFromSummary" type="button" class="w-full py-3 rounded-xl bg-mono-900 border border-mono-700 hover:border-mono-500 text-mono-200 font-mono font-semibold text-xs tracking-wider transition-all">
-            VIEW LEADERBOARD
-          </button>
-          <button id="btnPlayAgain" type="button" class="w-full py-3.5 rounded-xl bg-white hover:bg-mono-200 text-black font-mono font-bold text-sm tracking-wide transition-all">
-            PRACTICE AGAIN
-          </button>
-        </div>
-      </section>
-
-      <!-- ================================================= -->
-      <!-- VIEW 4: LEADERBOARD (PERSONAL & PUBLIC)           -->
-      <!-- ================================================= -->
-      <section id="viewLeaderboard" class="hidden fade-enter flex flex-col h-full justify-between gap-3">
-        
-        <!-- Header & Tabs -->
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <button id="btnBackFromLeaderboard" class="text-mono-400 hover:text-white p-1">
-                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-              </button>
-              <h2 class="text-base font-bold text-white">Leaderboards</h2>
-            </div>
-            <span class="text-[11px] font-mono text-mono-400" id="leaderboardUserDisplay">USER: RITA</span>
-          </div>
-
-          <!-- Minimalist Tab Switcher -->
-          <div class="grid grid-cols-2 p-1 rounded-xl bg-mono-900 border border-mono-800 text-xs font-mono font-bold">
-            <button id="tabPersonal" class="py-1.5 rounded-lg bg-white text-black transition-all">
-              PERSONAL (<span id="tabUserTag">RITA</span>)
+          <!-- Responsive Operations Grid: 2 columns on mobile/iPad (< lg), 4 columns on desktop (>= lg) -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
+            <button type="button" data-op="+" class="btn-op py-2.5 lg:py-3 px-3 rounded-lg bg-[#1a1d21] border border-[#23272e] hover:border-[#323742] text-[#d1cdc3] font-data text-base font-bold transition-all active:translate-y-[1px] flex items-center justify-center gap-2">
+              <span class="text-lg font-bold">+</span>
+              <span class="text-xs font-medium text-[#9da3af]">Addition</span>
             </button>
-            <button id="tabPublic" class="py-1.5 rounded-lg text-mono-400 hover:text-white transition-all">
-              PUBLIC (GLOBAL)
+            <button type="button" data-op="-" class="btn-op py-2.5 lg:py-3 px-3 rounded-lg bg-[#1a1d21] border border-[#23272e] hover:border-[#323742] text-[#d1cdc3] font-data text-base font-bold transition-all active:translate-y-[1px] flex items-center justify-center gap-2">
+              <span class="text-lg font-bold">−</span>
+              <span class="text-xs font-medium text-[#9da3af]">Subtraction</span>
+            </button>
+            <button type="button" data-op="*" class="btn-op py-2.5 lg:py-3 px-3 rounded-lg bg-[#f5f2eb] border border-[#ffffff] text-[#0c0d0f] font-data text-base font-bold shadow-sm transition-all active:translate-y-[1px] flex items-center justify-center gap-2">
+              <span class="text-lg font-bold">×</span>
+              <span class="text-xs font-medium text-[#0c0d0f]">Multiply</span>
+            </button>
+            <button type="button" data-op="/" class="btn-op py-2.5 lg:py-3 px-3 rounded-lg bg-[#1a1d21] border border-[#23272e] hover:border-[#323742] text-[#d1cdc3] font-data text-base font-bold transition-all active:translate-y-[1px] flex items-center justify-center gap-2">
+              <span class="text-lg font-bold">÷</span>
+              <span class="text-xs font-medium text-[#9da3af]">Division</span>
             </button>
           </div>
         </div>
 
-        <!-- Leaderboard Table Container -->
-        <div class="flex-1 overflow-y-auto rounded-xl border border-mono-900 bg-mono-950 p-2 font-mono text-xs">
+        <!-- 2. Operand Digit Sliders -->
+        <div class="space-y-3 sm:space-y-4 pt-2.5 sm:pt-3 border-t border-[#23272e]">
           
-          <!-- Personal Records Table (DEFAULT) -->
-          <div id="tablePersonal">
-            <div class="px-2 py-1.5 flex justify-between text-[10px] text-mono-500 uppercase border-b border-mono-900 font-bold">
-              <span>Date / Mode</span>
-              <span>Score / Acc</span>
-              <span class="text-right">Speed</span>
+          <!-- First Operand Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs font-data">
+              <span class="text-[#9da3af] font-medium">First Operand</span>
+              <span id="labelOp1" class="font-bold text-[#f5f2eb]">3 Digits <span class="text-[#646b79] font-normal text-[11px]">(100 – 999)</span></span>
             </div>
-            <div id="listPersonalRecords" class="divide-y divide-mono-900/60">
-              <!-- Dynamically populated from local database -->
-            </div>
+            <input id="sliderOp1" type="range" min="1" max="5" value="3" class="w-full cursor-pointer" aria-label="First Operand Digits" />
           </div>
 
-          <!-- Public Records Table -->
-          <div id="tablePublic" class="hidden">
-            <div class="px-2 py-1.5 flex justify-between text-[10px] text-mono-500 uppercase border-b border-mono-900 font-bold">
-              <span class="w-8">#</span>
-              <span class="flex-1">TAG</span>
-              <span class="w-16 text-center">Score</span>
-              <span class="w-16 text-right">Accuracy</span>
+          <!-- Second Operand Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs font-data">
+              <span class="text-[#9da3af] font-medium">Second Operand</span>
+              <span id="labelOp2" class="font-bold text-[#f5f2eb]">2 Digits <span class="text-[#646b79] font-normal text-[11px]">(10 – 99)</span></span>
             </div>
-            <div id="listPublicRecords" class="divide-y divide-mono-900/60">
-              <!-- Dynamically populated from public database -->
-            </div>
+            <input id="sliderOp2" type="range" min="1" max="5" value="2" class="w-full cursor-pointer" aria-label="Second Operand Digits" />
           </div>
 
         </div>
 
-        <!-- Bottom Controls -->
-        <button id="btnReturnSetup" type="button" class="w-full py-3 rounded-xl bg-mono-900 border border-mono-800 hover:border-mono-600 text-white font-mono font-bold text-xs tracking-wider">
-          BACK TO WORKOUT
-        </button>
-      </section>
+        <!-- 3. Question Quantity Selection -->
+        <div class="space-y-1.5 sm:space-y-2 pt-2.5 sm:pt-3 border-t border-[#23272e]">
+          <div class="flex justify-between items-center text-xs font-data">
+            <span class="uppercase font-semibold tracking-wider text-[#9da3af] text-[11px] sm:text-xs">Quantity</span>
+            <span id="labelSelectedCount" class="text-[#f5f2eb] font-bold text-xs sm:text-sm">10 Questions</span>
+          </div>
+          <div class="grid grid-cols-5 gap-1.5 sm:gap-2">
+            <button type="button" data-count="5" class="btn-count py-2 rounded-lg bg-[#1a1d21] border border-[#23272e] hover:border-[#323742] text-[#d1cdc3] text-xs font-data font-bold transition-all active:translate-y-[1px]">5</button>
+            <button type="button" data-count="10" class="btn-count py-2 rounded-lg bg-[#f5f2eb] border border-[#ffffff] text-[#0c0d0f] text-xs font-data font-bold shadow-sm transition-all active:translate-y-[1px]">10</button>
+            <button type="button" data-count="20" class="btn-count py-2 rounded-lg bg-[#1a1d21] border border-[#23272e] hover:border-[#323742] text-[#d1cdc3] text-xs font-data font-bold transition-all active:translate-y-[1px]">20</button>
+            <button type="button" data-count="infinite" class="btn-count py-2 rounded-lg bg-[#1a1d21] border border-[#23272e] hover:border-[#323742] text-[#d1cdc3] text-xs font-data font-bold transition-all active:translate-y-[1px]" title="Endless Mode">∞ Inf</button>
+            <button type="button" id="btnCustomCountToggle" class="btn-count py-2 rounded-lg bg-[#1a1d21] border border-[#23272e] hover:border-[#323742] text-[#9da3af] text-xs font-data font-medium transition-all active:translate-y-[1px]">Custom</button>
+          </div>
 
-    </main>
-
-    <!-- USERNAME MODAL (4-LETTER USERNAME SELECTOR) -->
-    <div id="userModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div class="w-full max-w-[320px] rounded-2xl bg-mono-950 border border-mono-800 p-5 space-y-4 shadow-2xl">
-        <div class="space-y-1 text-center">
-          <h3 class="text-sm font-bold text-white">Player Tag</h3>
-          <p class="text-[11px] text-mono-400">Enter your 4-letter arcade username</p>
+          <!-- Custom Quantity Input Box -->
+          <div id="customCountBox" class="hidden mt-2 flex gap-2">
+            <input id="inputCustomQuestions" type="number" min="1" max="500" placeholder="Count (1–500)" class="flex-1 px-3.5 py-2 rounded-lg bg-[#1a1d21] border border-[#323742] text-xs font-data text-[#f5f2eb] focus:outline-none focus:border-[#f5f2eb]" />
+            <button id="btnApplyCustomQuestions" type="button" class="px-4 py-2 bg-[#22262c] hover:bg-[#323742] rounded-lg text-xs font-data font-bold text-[#f5f2eb]">Apply</button>
+          </div>
         </div>
 
-        <div class="flex justify-center">
+      </div>
+
+      <!-- Start Practice Action -->
+      <button id="btnStartPractice" type="button" class="btn-primary-action w-full py-3.5 rounded-xl font-data font-black text-sm tracking-wider uppercase flex items-center justify-center gap-2">
+        <span>Start Practice</span>
+        <span>→</span>
+      </button>
+
+    </section>
+
+    <!-- ================================================= -->
+    <!-- VIEW 2: GAMEPLAY ENGINE (ULTRA-MINIMALIST)         -->
+    <!-- ================================================= -->
+    <section id="viewGameplay" class="hidden fade-view space-y-4 sm:space-y-6 w-full">
+      
+      <!-- Top Gameplay Bar -->
+      <div class="space-y-1.5 font-data">
+        <div class="flex justify-between items-center text-xs text-[#9da3af]">
+          <button id="btnQuitSession" class="text-[#9da3af] hover:text-[#f5f2eb] flex items-center gap-1 transition-colors">
+            ✕ Quit
+          </button>
+          <div class="flex items-center gap-3 sm:gap-4">
+            <span id="liveTimer" class="px-2 py-0.5 rounded bg-[#1a1d21] text-[#f5f2eb] font-bold">00:00</span>
+            <span id="liveProgress" class="font-bold text-[#d1cdc3]">Question #1</span>
+          </div>
+        </div>
+
+        <!-- Solid Progress Bar -->
+        <div class="w-full h-1 bg-[#1a1d21] rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full bg-[#f5f2eb] transition-all duration-150" style="width: 10%;"></div>
+        </div>
+      </div>
+
+      <!-- Distraction-Free Calculation Card -->
+      <div id="gameCard" class="surface-card p-6 sm:p-10 lg:p-12 rounded-xl flex flex-col items-center justify-center space-y-5 sm:space-y-6 text-center relative">
+        
+        <div class="space-y-2 sm:space-y-3 w-full">
+          <div class="flex items-center justify-center">
+            <span id="badgeInfiniteMode" class="hidden text-[10px] font-data font-bold px-2 py-0.5 rounded bg-[#1a1d21] text-[#9da3af] border border-[#23272e]">INFINITE MODE</span>
+          </div>
+          
+          <!-- Equation String -->
+          <div id="displayEquation" class="text-3xl sm:text-5xl lg:text-6xl font-data font-extrabold tracking-tight text-[#f5f2eb] select-text">
+            342 × 12 = ?
+          </div>
+
+          <!-- Error Correction Box -->
+          <div id="errorBox" class="hidden p-2.5 sm:p-3 rounded-lg bg-red-950/50 border border-red-800 text-xs font-data text-red-200">
+            Correct Answer: <span id="correctAnswerText" class="font-bold text-white text-sm">4104</span>
+          </div>
+        </div>
+
+        <!-- Numeric Answer Input -->
+        <div class="w-full max-w-xs">
           <input 
-            id="inputUserTag" 
-            type="text" 
-            maxlength="4" 
-            placeholder="RITA" 
-            class="w-40 py-2 text-center text-2xl font-mono font-black tracking-widest uppercase bg-mono-900 border border-mono-700 rounded-xl text-white focus:outline-none focus:border-white"
+            id="inputAnswer" 
+            type="number" 
+            inputmode="numeric" 
+            pattern="[0-9]*" 
+            placeholder="Answer" 
+            autocomplete="off"
+            class="w-full py-3 sm:py-3.5 px-4 rounded-xl bg-[#0c0d0f] border-2 border-[#323742] text-center text-2xl sm:text-3xl font-data font-bold text-[#f5f2eb] focus:outline-none focus:border-[#f5f2eb] transition-colors"
           />
         </div>
+      </div>
 
-        <div class="flex gap-2">
-          <button id="btnCancelUserModal" type="button" class="flex-1 py-2.5 rounded-xl bg-mono-900 text-mono-300 hover:text-white text-xs font-mono font-semibold">
-            Cancel
+      <!-- Controls -->
+      <div class="space-y-2">
+        <button id="btnSubmit" type="button" class="btn-primary-action w-full py-3 sm:py-3.5 rounded-xl font-data font-black text-sm tracking-wider uppercase">
+          SUBMIT (↵ ENTER)
+        </button>
+        <button id="btnGotIt" type="button" class="hidden w-full py-3 sm:py-3.5 rounded-xl bg-[#1a1d21] hover:bg-[#22262c] text-[#f5f2eb] font-data font-bold text-sm tracking-wider uppercase border border-[#323742] transition-all">
+          GOT IT — CONTINUE →
+        </button>
+        
+        <!-- Infinite Mode "Finish Workout" Button -->
+        <button id="btnFinishInfiniteSession" type="button" class="hidden w-full py-2.5 sm:py-3 rounded-xl bg-[#141619] border border-[#323742] hover:border-[#f5f2eb] text-[#d1cdc3] hover:text-white font-data font-bold text-xs tracking-wider uppercase transition-all">
+          FINISH WORKOUT & LOG SCORE
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ================================================= -->
+    <!-- VIEW 3: POST-GAME SUMMARY & SCORE REVIEW          -->
+    <!-- ================================================= -->
+    <section id="viewSummary" class="hidden fade-view space-y-4 sm:space-y-5 w-full">
+      
+      <div class="space-y-0.5 sm:space-y-1">
+        <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold font-data text-[#f5f2eb]">Workout Completed</h2>
+        <p class="text-xs sm:text-sm text-[#9da3af] font-data">Performance metrics logged for <span id="summaryUsername" class="text-white font-bold">User</span>.</p>
+      </div>
+
+      <!-- Performance Grid -->
+      <div class="grid grid-cols-2 gap-2.5 sm:gap-3 font-data">
+        <!-- Accuracy Metric -->
+        <div class="surface-card p-3.5 sm:p-4 rounded-xl space-y-0.5">
+          <div class="text-[10px] sm:text-[11px] uppercase text-[#9da3af] font-semibold">Accuracy</div>
+          <div id="statAccuracy" class="text-xl sm:text-2xl font-bold text-[#f5f2eb]">100%</div>
+          <div id="statScoreText" class="text-[11px] sm:text-xs text-[#646b79]">10/10 Correct</div>
+        </div>
+
+        <!-- Speed Metric -->
+        <div class="surface-card p-3.5 sm:p-4 rounded-xl space-y-0.5">
+          <div class="text-[10px] sm:text-[11px] uppercase text-[#9da3af] font-semibold">Pace / Question</div>
+          <div id="statSpeed" class="text-xl sm:text-2xl font-bold text-[#f5f2eb]">18.4s</div>
+          <div id="statTargetCompare" class="text-[11px] sm:text-xs text-[#646b79]">Target: 45.0s</div>
+        </div>
+
+        <!-- Points Breakdown Card -->
+        <div class="col-span-2 surface-card p-3.5 sm:p-4 rounded-xl flex justify-between items-center">
+          <div class="space-y-0.5">
+            <div class="text-[10px] sm:text-[11px] uppercase text-[#9da3af] font-semibold">Score Breakdown</div>
+            <div id="statPointsFormula" class="text-xs text-[#d1cdc3]">75 Base PTS × 1.30x Speed Bonus</div>
+            <div id="statGoalStatus" class="text-[11px] text-emerald-400">Workout Saved</div>
+          </div>
+          <div class="text-right">
+            <div id="statPoints" class="text-xl sm:text-2xl font-extrabold text-amber-400">+975 PTS</div>
+            <div class="text-[11px] text-[#9da3af]">Streak: <span id="statStreakNum" class="text-white font-bold">1</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2">
+        <button id="btnViewLeaderboardFromSummary" type="button" class="btn-tactile w-full py-2.5 sm:py-3 rounded-xl bg-[#141619] border border-[#23272e] text-[#d1cdc3] font-data font-bold text-xs tracking-wider uppercase">
+          VIEW GLOBAL LEADERBOARD
+        </button>
+        <button id="btnPlayAgain" type="button" class="btn-primary-action w-full py-3 sm:py-3.5 rounded-xl font-data font-black text-sm tracking-wider uppercase">
+          PRACTICE AGAIN
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ================================================= -->
+    <!-- VIEW 4: GLOBAL LEADERBOARD (PURE GLOBAL RANKINGS) -->
+    <!-- ================================================= -->
+    <section id="viewLeaderboard" class="hidden fade-view space-y-3.5 sm:space-y-4 w-full">
+      
+      <!-- Top Title & Sync Bar -->
+      <div class="flex items-center justify-between font-data">
+        <div class="flex items-center gap-2">
+          <button id="btnBackFromLeaderboard" class="text-[#9da3af] hover:text-white p-1 transition-colors flex items-center justify-center" aria-label="Back to Setup">
+            <span class="material-symbols-rounded text-[20px] sm:text-[22px]">arrow_back</span>
           </button>
-          <button id="btnSaveUserModal" type="button" class="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-mono font-bold">
+          <div>
+            <h2 class="text-lg sm:text-xl lg:text-2xl font-bold text-[#f5f2eb]">Global Leaderboard</h2>
+            <p class="text-[11px] sm:text-xs text-[#9da3af]">Rankings across all participants</p>
+          </div>
+        </div>
+
+        <button id="btnRefreshLeaderboard" title="Sync Leaderboard" class="btn-tactile px-2.5 py-1 sm:py-1.5 rounded-lg bg-[#141619] border border-[#23272e] text-[#9da3af] hover:text-white text-xs flex items-center gap-1">
+          <span class="material-symbols-rounded text-[15px] sm:text-[16px]">sync</span>
+          <span class="text-[11px]">Sync</span>
+        </button>
+      </div>
+
+      <!-- Sort Controls Bar -->
+      <div class="flex justify-between items-center px-1 font-data text-xs">
+        <span class="text-[11px] text-[#9da3af]">Standings</span>
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] text-[#646b79] uppercase">Sort by:</span>
+          <button id="btnSortLeaderboardPoints" class="px-2.5 py-1 sm:px-3 sm:py-1 rounded-lg bg-[#f5f2eb] text-[#0c0d0f] font-bold text-[11px] transition-all flex items-center gap-1">
+            <span class="material-symbols-rounded filled text-amber-400 text-[13px] sm:text-[14px]">star</span>
+            <span>Points</span>
+          </button>
+          <button id="btnSortLeaderboardStreak" class="px-2.5 py-1 sm:px-3 sm:py-1 rounded-lg bg-[#141619] border border-[#23272e] text-[#9da3af] hover:text-white font-bold text-[11px] transition-all flex items-center gap-1">
+            <span class="material-symbols-rounded filled text-amber-500 text-[13px] sm:text-[14px]">local_fire_department</span>
+            <span>Streak</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Leaderboard List Card -->
+      <div class="surface-card rounded-xl p-3 sm:p-4 font-data text-xs overflow-hidden min-h-[300px]">
+        <div class="px-2.5 py-1.5 flex justify-between text-[10px] sm:text-[11px] text-[#646b79] uppercase border-b border-[#23272e] font-bold tracking-wider">
+          <span>Rank & Player</span>
+          <span class="text-center">Streak</span>
+          <span class="text-right">Total Points</span>
+        </div>
+        <div id="listGlobalLeaderboard" class="divide-y divide-[#23272e]">
+          <div class="py-14 text-center text-[#646b79] text-xs">Loading leaderboard data...</div>
+        </div>
+      </div>
+
+      <!-- Return Button -->
+      <button id="btnReturnSetup" type="button" class="btn-tactile w-full py-2.5 sm:py-3 rounded-xl bg-[#141619] border border-[#23272e] text-[#f5f2eb] font-data font-bold text-xs tracking-wider uppercase">
+        BACK TO WORKOUT
+      </button>
+
+    </section>
+
+  </main>
+
+  <!-- ================================================= -->
+  <!-- AUTHENTICATION MODAL                              -->
+  <!-- ================================================= -->
+  <div id="authModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+    <div class="w-full max-w-sm rounded-xl surface-card p-5 space-y-4 shadow-2xl">
+      
+      <!-- Header -->
+      <div class="flex justify-between items-center">
+        <div class="space-y-0.5">
+          <h3 class="text-xs font-bold text-[#f5f2eb] font-data uppercase tracking-wider">Account Access</h3>
+          <p class="text-[11px] text-[#9da3af]">Sync scores across your devices</p>
+        </div>
+        <button id="btnCloseAuthModal" class="text-[#9da3af] hover:text-white font-data text-base p-1">✕</button>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="grid grid-cols-2 p-1 rounded-lg bg-[#0c0d0f] border border-[#23272e] text-xs font-data font-bold">
+        <button id="tabAuthSignIn" class="py-1.5 rounded bg-[#f5f2eb] text-[#0c0d0f] transition-all">Sign In</button>
+        <button id="tabAuthSignUp" class="py-1.5 rounded text-[#9da3af] hover:text-white transition-all">Sign Up</button>
+      </div>
+
+      <!-- Google OAuth Action -->
+      <button id="btnGoogleSignIn" type="button" class="btn-tactile w-full py-2.5 px-3.5 rounded-lg bg-[#1a1d21] border border-[#323742] text-[#f5f2eb] font-data text-xs font-semibold flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-[#23272e]"></div>
+        <span class="flex-shrink mx-2 text-[10px] uppercase font-data text-[#646b79]">or email</span>
+        <div class="flex-grow border-t border-[#23272e]"></div>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="authForm" class="space-y-2.5 font-data text-xs" onsubmit="return false;">
+        <div id="fieldUsername" class="hidden space-y-1">
+          <label class="text-[10px] text-[#9da3af] uppercase font-semibold">Username</label>
+          <input id="inputAuthUsername" type="text" placeholder="e.g. rita" class="w-full px-3 py-2 rounded-lg bg-[#0c0d0f] border border-[#323742] text-white text-xs focus:outline-none focus:border-white" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] text-[#9da3af] uppercase font-semibold">Email Address</label>
+          <input id="inputAuthEmail" type="email" required placeholder="user@example.com" class="w-full px-3 py-2 rounded-lg bg-[#0c0d0f] border border-[#323742] text-white text-xs focus:outline-none focus:border-white" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[10px] text-[#9da3af] uppercase font-semibold">Password</label>
+          <input id="inputAuthPassword" type="password" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2 rounded-lg bg-[#0c0d0f] border border-[#323742] text-white text-xs focus:outline-none focus:border-white" />
+        </div>
+
+        <div id="authErrorMessage" class="hidden p-2 rounded bg-red-950/80 border border-red-800 text-red-200 text-[11px]"></div>
+
+        <button id="btnSubmitAuthForm" type="submit" class="btn-primary-action w-full py-2.5 rounded-lg text-black font-bold text-xs mt-1">
+          Sign In
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ================================================= -->
+  <!-- PROFILE SETTINGS MODAL                            -->
+  <!-- ================================================= -->
+  <div id="profileSettingsModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+    <div class="w-full max-w-sm rounded-xl surface-card p-5 space-y-3.5 font-data text-xs shadow-2xl">
+      
+      <div class="flex justify-between items-center border-b border-[#23272e] pb-2.5">
+        <div class="space-y-0.5">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Account Settings</h3>
+          <p class="text-[11px] text-[#9da3af]">Manage display name & session</p>
+        </div>
+        <button id="btnCloseProfileSettings" class="text-[#9da3af] hover:text-white text-base p-1">✕</button>
+      </div>
+
+      <!-- Change Username -->
+      <div class="space-y-1.5">
+        <label class="text-[10px] uppercase text-[#9da3af] font-bold tracking-wider">Display Username</label>
+        <div class="flex gap-2">
+          <input 
+            id="inputProfileUsername" 
+            type="text" 
+            maxlength="20" 
+            placeholder="Username" 
+            class="flex-1 px-3 py-2 rounded-lg bg-[#0c0d0f] border border-[#323742] text-white font-bold focus:outline-none focus:border-white text-xs"
+          />
+          <button id="btnSaveProfileUsername" type="button" class="btn-primary-action px-4 py-2 rounded-lg text-black font-bold">
             Save
           </button>
         </div>
       </div>
-    </div>
 
+      <!-- User Stats Summary -->
+      <div class="p-3 rounded-lg bg-[#0c0d0f] border border-[#23272e] space-y-1 text-[11px]">
+        <div class="flex justify-between text-[#9da3af]">
+          <span>Account:</span>
+          <span id="profileAccountEmail" class="text-[#f5f2eb] font-semibold truncate max-w-[160px]">Google/Email</span>
+        </div>
+        <div class="flex justify-between text-[#9da3af]">
+          <span>Total Workouts:</span>
+          <span id="profileTotalWorkouts" class="text-white font-bold">0</span>
+        </div>
+        <div class="flex justify-between text-[#9da3af]">
+          <span>Points Balance:</span>
+          <span id="profilePointsBalance" class="text-amber-400 font-bold">0 ★</span>
+        </div>
+      </div>
+
+      <!-- Sign Out Action -->
+      <div class="pt-1 border-t border-[#23272e]">
+        <button id="btnProfileSignOut" type="button" class="btn-tactile w-full py-2.5 rounded-lg bg-[#1a1d21] hover:bg-red-950/40 border border-[#323742] hover:border-red-800 text-[#d1cdc3] hover:text-red-300 font-bold flex items-center justify-center gap-2">
+          <span class="material-symbols-rounded text-[18px]">logout</span>
+          <span>Sign Out</span>
+        </button>
+      </div>
+
+    </div>
   </div>
 
-  <!-- APPLICATION JAVASCRIPT & DATABASE ENGINE -->
-  <script>
-    (() => {
-      'use strict';
-
-      // --- LOCAL DATABASE & STORAGE SCHEMA ---
-      const DB_KEY_USER = 'mathsprint_user_tag';
-      const DB_KEY_PERSONAL = 'mathsprint_db_personal_records';
-      const DB_KEY_PUBLIC = 'mathsprint_db_public_records';
-      const DB_KEY_STREAK = 'mathsprint_db_streak_state';
-
-      // Global App State
-      let userTag = localStorage.getItem(DB_KEY_USER) || 'RITA';
-      
-      let streakState = JSON.parse(localStorage.getItem(DB_KEY_STREAK) || JSON.stringify({
-        streakCount: 0,
-        lastActiveDate: null,
-        streakFreezes: 2,
-        points: 0
-      }));
-
-      // Initialize default sample public leaderboard if none exists
-      if (!localStorage.getItem(DB_KEY_PUBLIC)) {
-        const samplePublic = [
-          { rank: 1, tag: 'RITA', score: 100, accuracy: 100, speed: '2.4s', date: '2026-08-25' },
-          { rank: 2, tag: 'ALEX', score: 95, accuracy: 100, speed: '2.8s', date: '2026-08-24' },
-          { rank: 3, tag: 'MAXM', score: 90, accuracy: 90, speed: '3.1s', date: '2026-08-25' },
-          { rank: 4, tag: 'ZERO', score: 85, accuracy: 90, speed: '3.5s', date: '2026-08-23' },
-          { rank: 5, tag: 'NOVA', score: 80, accuracy: 80, speed: '4.0s', date: '2026-08-22' }
-        ];
-        localStorage.setItem(DB_KEY_PUBLIC, JSON.stringify(samplePublic));
-      }
-
-      function getPersonalRecords(tag) {
-        const all = JSON.parse(localStorage.getItem(DB_KEY_PERSONAL) || '[]');
-        return all.filter(r => r.tag === tag);
-      }
-
-      function saveSessionRecord(record) {
-        // Save to Personal DB
-        const personal = JSON.parse(localStorage.getItem(DB_KEY_PERSONAL) || '[]');
-        personal.unshift(record);
-        localStorage.setItem(DB_KEY_PERSONAL, JSON.stringify(personal));
-
-        // Save / Update to Public DB
-        const publicList = JSON.parse(localStorage.getItem(DB_KEY_PUBLIC) || '[]');
-        publicList.push(record);
-        publicList.sort((a, b) => b.score - a.score || parseFloat(a.speed) - parseFloat(b.speed));
-        
-        // Re-rank top 50
-        const ranked = publicList.slice(0, 50).map((item, idx) => ({ ...item, rank: idx + 1 }));
-        localStorage.setItem(DB_KEY_PUBLIC, JSON.stringify(ranked));
-      }
-
-      // --- STREAK EVALUATION ---
-      function getTodayString() {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      }
-
-      function checkDailyStreak() {
-        const today = getTodayString();
-        if (!streakState.lastActiveDate) return;
-
-        const d1 = new Date(streakState.lastActiveDate + 'T00:00:00');
-        const d2 = new Date(today + 'T00:00:00');
-        const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 1) {
-          if (streakState.streakFreezes > 0) {
-            streakState.streakFreezes--;
-            // protect streak
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            streakState.lastActiveDate = yesterday.toISOString().split('T')[0];
-            showToast("Streak Freeze Used to save your streak! ❄️");
-          } else {
-            streakState.streakCount = 0;
-            showToast("Streak reset. Complete a workout to restart! 🔥");
-          }
-          saveStreakState();
-        }
-      }
-
-      function saveStreakState() {
-        localStorage.setItem(DB_KEY_STREAK, JSON.stringify(streakState));
-        document.getElementById('headerStreak').textContent = streakState.streakCount;
-        document.getElementById('headerFreezes').textContent = streakState.streakFreezes;
-      }
-
-      function showToast(msg) {
-        const t = document.getElementById('toastAlert');
-        document.getElementById('toastAlertText').textContent = msg;
-        t.classList.remove('hidden');
-      }
-
-      // --- GAME CONFIG & RUNTIME ---
-      let config = {
-        op: '*',
-        op1Digits: 3,
-        op2Digits: 2,
-        count: 10
-      };
-
-      let session = {
-        questions: [],
-        index: 0,
-        correct: 0,
-        startTime: null,
-        timerId: null,
-        isReviewing: false
-      };
-
-      function generateNumber(digits) {
-        if (digits === 1) return Math.floor(Math.random() * 9) + 1;
-        const min = Math.pow(10, digits - 1);
-        const max = Math.pow(10, digits) - 1;
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }
-
-      function buildQuestion() {
-        let op1, op2, answer, symbol;
-        switch (config.op) {
-          case '+':
-            op1 = generateNumber(config.op1Digits);
-            op2 = generateNumber(config.op2Digits);
-            answer = op1 + op2;
-            symbol = '+';
-            break;
-          case '-':
-            op1 = generateNumber(config.op1Digits);
-            op2 = generateNumber(config.op2Digits);
-            if (op1 < op2) { const tmp = op1; op1 = op2; op2 = tmp; }
-            answer = op1 - op2;
-            symbol = '−';
-            break;
-          case '*':
-            op1 = generateNumber(config.op1Digits);
-            op2 = generateNumber(config.op2Digits);
-            answer = op1 * op2;
-            symbol = '×';
-            break;
-          case '/':
-            op2 = generateNumber(config.op2Digits);
-            if (op2 === 1) op2 = 2;
-            const q = generateNumber(config.op1Digits);
-            op1 = op2 * q;
-            answer = q;
-            symbol = '÷';
-            break;
-        }
-        return { op1, op2, symbol, answer, text: `${op1} ${symbol} ${op2} = ?` };
-      }
-
-      // --- VIEWS CONTROLLER ---
-      const viewSetup = document.getElementById('viewSetup');
-      const viewGameplay = document.getElementById('viewGameplay');
-      const viewSummary = document.getElementById('viewSummary');
-      const viewLeaderboard = document.getElementById('viewLeaderboard');
-
-      function switchView(target) {
-        [viewSetup, viewGameplay, viewSummary, viewLeaderboard].forEach(v => {
-          v.classList.add('hidden');
-          v.classList.remove('fade-enter');
-        });
-        target.classList.remove('hidden');
-        void target.offsetWidth;
-        target.classList.add('fade-enter');
-      }
-
-      function startSession() {
-        session.questions = [];
-        session.index = 0;
-        session.correct = 0;
-        session.startTime = Date.now();
-        session.isReviewing = false;
-
-        for (let i = 0; i < config.count; i++) {
-          session.questions.push(buildQuestion());
-        }
-
-        if (session.timerId) clearInterval(session.timerId);
-        session.timerId = setInterval(updateLiveTimer, 1000);
-        updateLiveTimer();
-
-        switchView(viewGameplay);
-        renderCurrentQuestion();
-      }
-
-      function updateLiveTimer() {
-        if (!session.startTime) return;
-        const s = Math.floor((Date.now() - session.startTime) / 1000);
-        const mm = String(Math.floor(s / 60)).padStart(2, '0');
-        const ss = String(s % 60).padStart(2, '0');
-        document.getElementById('liveTimer').textContent = `${mm}:${ss}`;
-      }
-
-      function renderCurrentQuestion() {
-        const q = session.questions[session.index];
-        const total = session.questions.length;
-        const cur = session.index + 1;
-
-        document.getElementById('liveProgress').textContent = `${cur} / ${total}`;
-        document.getElementById('progressBar').style.width = `${Math.round((cur/total)*100)}%`;
-        document.getElementById('displayEquation').textContent = q.text;
-
-        const input = document.getElementById('inputAnswer');
-        const card = document.getElementById('gameCard');
-        const errBox = document.getElementById('errorBox');
-        const btnSubmit = document.getElementById('btnSubmit');
-        const btnGotIt = document.getElementById('btnGotIt');
-
-        card.classList.remove('shake-card', 'border-red-900', 'border-emerald-900');
-        input.classList.remove('border-red-600', 'border-emerald-600');
-        errBox.classList.add('hidden');
-        btnSubmit.classList.remove('hidden');
-        btnGotIt.classList.add('hidden');
-
-        input.value = '';
-        input.disabled = false;
-        input.focus();
-        session.isReviewing = false;
-      }
-
-      function handleAnswerSubmit() {
-        if (session.isReviewing) {
-          advanceQuestion();
-          return;
-        }
-
-        const input = document.getElementById('inputAnswer');
-        const raw = input.value.trim();
-        if (raw === '') { input.focus(); return; }
-
-        const ans = parseInt(raw, 10);
-        const q = session.questions[session.index];
-        const isCorrect = (ans === q.answer);
-
-        input.disabled = true;
-
-        if (isCorrect) {
-          session.correct++;
-          input.classList.add('border-emerald-600');
-          setTimeout(advanceQuestion, 400);
-        } else {
-          const card = document.getElementById('gameCard');
-          card.classList.add('shake-card', 'border-red-900');
-          input.classList.add('border-red-600');
-          document.getElementById('correctAnswerText').textContent = q.answer;
-          document.getElementById('errorBox').classList.remove('hidden');
-          document.getElementById('btnSubmit').classList.add('hidden');
-          document.getElementById('btnGotIt').classList.remove('hidden');
-          session.isReviewing = true;
-        }
-      }
-
-      function advanceQuestion() {
-        session.index++;
-        if (session.index < session.questions.length) {
-          renderCurrentQuestion();
-        } else {
-          completeSession();
-        }
-      }
-
-      function completeSession() {
-        if (session.timerId) clearInterval(session.timerId);
-        const durationSec = Math.max(1, Math.floor((Date.now() - session.startTime) / 1000));
-        const total = session.questions.length;
-        const accuracy = Math.round((session.correct / total) * 100);
-        const speed = (durationSec / total).toFixed(1) + 's';
-        const score = session.correct * 10;
-        const mm = String(Math.floor(durationSec / 60)).padStart(2, '0');
-        const ss = String(durationSec % 60).padStart(2, '0');
-
-        // Update streak
-        const today = getTodayString();
-        if (streakState.lastActiveDate !== today) {
-          streakState.streakCount++;
-          streakState.lastActiveDate = today;
-        }
-        streakState.points += score;
-        saveStreakState();
-
-        // Save Record to Database
-        const record = {
-          tag: userTag,
-          date: today,
-          mode: `${config.op1Digits}d ${config.op} ${config.op2Digits}d`,
-          score: score,
-          accuracy: accuracy,
-          speed: speed,
-          totalTime: `${mm}:${ss}`
-        };
-        saveSessionRecord(record);
-
-        // Render Summary
-        document.getElementById('summaryUserTag').textContent = userTag;
-        document.getElementById('statAccuracy').textContent = `${accuracy}%`;
-        document.getElementById('statScoreText').textContent = `${session.correct}/${total} Correct`;
-        document.getElementById('statTime').textContent = `${mm}:${ss}`;
-        document.getElementById('statSpeed').textContent = `${speed} / question`;
-        document.getElementById('statPoints').textContent = `+${score} PTS`;
-        document.getElementById('statStreakNum').textContent = streakState.streakCount;
-
-        switchView(viewSummary);
-      }
-
-      // --- LEADERBOARD RENDERERS ---
-      function renderLeaderboards() {
-        document.getElementById('leaderboardUserDisplay').textContent = `USER: ${userTag}`;
-        document.getElementById('tabUserTag').textContent = userTag;
-
-        // Render Personal (DEFAULT)
-        const personalList = document.getElementById('listPersonalRecords');
-        const personalRecords = getPersonalRecords(userTag);
-
-        if (personalRecords.length === 0) {
-          personalList.innerHTML = `<div class="py-6 text-center text-mono-500 text-xs">No records yet for ${userTag}. Complete a session!</div>`;
-        } else {
-          personalList.innerHTML = personalRecords.slice(0, 30).map(r => `
-            <div class="py-2 px-2 flex justify-between items-center text-xs">
-              <div>
-                <div class="font-bold text-white">${r.mode}</div>
-                <div class="text-[10px] text-mono-500">${r.date}</div>
-              </div>
-              <div class="text-center">
-                <div class="font-bold text-mono-200">${r.score} pts</div>
-                <div class="text-[10px] text-mono-400">${r.accuracy}% acc</div>
-              </div>
-              <div class="text-right text-mono-400 text-[11px]">
-                ${r.speed}
-              </div>
-            </div>
-          `).join('');
-        }
-
-        // Render Public
-        const publicList = document.getElementById('listPublicRecords');
-        const publicRecords = JSON.parse(localStorage.getItem(DB_KEY_PUBLIC) || '[]');
-        
-        publicList.innerHTML = publicRecords.slice(0, 50).map((r, i) => `
-          <div class="py-2 px-2 flex justify-between items-center text-xs ${r.tag === userTag ? 'bg-mono-900/60 rounded-lg text-white' : 'text-mono-300'}">
-            <span class="w-8 font-bold text-mono-500">#${r.rank || (i+1)}</span>
-            <span class="flex-1 font-bold ${r.tag === userTag ? 'text-white' : 'text-mono-200'}">${r.tag}</span>
-            <span class="w-16 text-center font-bold">${r.score}</span>
-            <span class="w-16 text-right text-mono-400">${r.accuracy}%</span>
-          </div>
-        `).join('');
-      }
-
-      // --- EVENT BINDINGS ---
-      function initEvents() {
-        // Operation buttons
-        document.querySelectorAll('.btn-op').forEach(btn => {
-          btn.addEventListener('click', () => {
-            document.querySelectorAll('.btn-op').forEach(b => {
-              b.className = 'btn-op py-2.5 rounded-lg bg-mono-900 border border-mono-800 text-mono-300 font-mono text-base font-bold hover:border-mono-700 active:scale-95 transition-all';
-            });
-            btn.className = 'btn-op py-2.5 rounded-lg bg-white border border-white text-black font-mono text-base font-bold shadow active:scale-95 transition-all';
-            config.op = btn.getAttribute('data-op');
-          });
-        });
-
-        // Sliders
-        const s1 = document.getElementById('sliderOp1');
-        const l1 = document.getElementById('labelOp1');
-        s1.addEventListener('input', (e) => {
-          const val = parseInt(e.target.value);
-          config.op1Digits = val;
-          const min = val === 1 ? 1 : Math.pow(10, val-1);
-          const max = Math.pow(10, val) - 1;
-          l1.innerHTML = `${val} <span class="text-mono-500 font-normal text-[10px]">(${min}-${max})</span>`;
-        });
-
-        const s2 = document.getElementById('sliderOp2');
-        const l2 = document.getElementById('labelOp2');
-        s2.addEventListener('input', (e) => {
-          const val = parseInt(e.target.value);
-          config.op2Digits = val;
-          const min = val === 1 ? 1 : Math.pow(10, val-1);
-          const max = Math.pow(10, val) - 1;
-          l2.innerHTML = `${val} <span class="text-mono-500 font-normal text-[10px]">(${min}-${max})</span>`;
-        });
-
-        // Count buttons
-        document.querySelectorAll('.btn-count').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const val = btn.getAttribute('data-count');
-            const customBox = document.getElementById('customCountBox');
-            document.querySelectorAll('.btn-count').forEach(b => {
-              b.className = 'btn-count py-2 rounded-lg bg-mono-900 border border-mono-800 text-mono-300 text-xs font-mono font-bold hover:border-mono-700 active:scale-95 transition-all';
-            });
-
-            if (val) {
-              btn.className = 'btn-count py-2 rounded-lg bg-white border border-white text-black text-xs font-mono font-bold shadow active:scale-95 transition-all';
-              customBox.classList.add('hidden');
-              config.count = parseInt(val, 10);
-            } else {
-              btn.className = 'btn-count py-2 rounded-lg bg-white border border-white text-black text-xs font-mono font-bold shadow active:scale-95 transition-all';
-              customBox.classList.remove('hidden');
-              document.getElementById('inputCustomQuestions').focus();
-            }
-          });
-        });
-
-        document.getElementById('btnApplyCustomQuestions').addEventListener('click', () => {
-          const v = parseInt(document.getElementById('inputCustomQuestions').value, 10);
-          if (v && v >= 1 && v <= 100) config.count = v;
-        });
-
-        // Game flow
-        document.getElementById('btnStartPractice').addEventListener('click', startSession);
-        document.getElementById('btnSubmit').addEventListener('click', handleAnswerSubmit);
-        document.getElementById('btnGotIt').addEventListener('click', advanceQuestion);
-        document.getElementById('inputAnswer').addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleAnswerSubmit();
-          }
-        });
-
-        document.getElementById('btnQuitSession').addEventListener('click', () => {
-          if (confirm("Quit current workout?")) {
-            if (session.timerId) clearInterval(session.timerId);
-            switchView(viewSetup);
-          }
-        });
-
-        document.getElementById('btnPlayAgain').addEventListener('click', () => {
-          switchView(viewSetup);
-        });
-
-        // Leaderboard Navigation
-        document.getElementById('btnNavLeaderboard').addEventListener('click', () => {
-          renderLeaderboards();
-          switchView(viewLeaderboard);
-        });
-
-        document.getElementById('btnViewLeaderboardFromSummary').addEventListener('click', () => {
-          renderLeaderboards();
-          switchView(viewLeaderboard);
-        });
-
-        document.getElementById('btnBackFromLeaderboard').addEventListener('click', () => {
-          switchView(viewSetup);
-        });
-
-        document.getElementById('btnReturnSetup').addEventListener('click', () => {
-          switchView(viewSetup);
-        });
-
-        // Leaderboard Tabs
-        const tabPersonal = document.getElementById('tabPersonal');
-        const tabPublic = document.getElementById('tabPublic');
-        const tablePersonal = document.getElementById('tablePersonal');
-        const tablePublic = document.getElementById('tablePublic');
-
-        tabPersonal.addEventListener('click', () => {
-          tabPersonal.className = 'py-1.5 rounded-lg bg-white text-black transition-all';
-          tabPublic.className = 'py-1.5 rounded-lg text-mono-400 hover:text-white transition-all';
-          tablePersonal.classList.remove('hidden');
-          tablePublic.classList.add('hidden');
-        });
-
-        tabPublic.addEventListener('click', () => {
-          tabPublic.className = 'py-1.5 rounded-lg bg-white text-black transition-all';
-          tabPersonal.className = 'py-1.5 rounded-lg text-mono-400 hover:text-white transition-all';
-          tablePublic.classList.remove('hidden');
-          tablePersonal.classList.add('hidden');
-        });
-
-        // User Tag Modal
-        const userModal = document.getElementById('userModal');
-        const inputTag = document.getElementById('inputUserTag');
-        document.getElementById('btnOpenUserModal').addEventListener('click', () => {
-          inputTag.value = userTag;
-          userModal.classList.remove('hidden');
-          inputTag.focus();
-        });
-
-        document.getElementById('btnCancelUserModal').addEventListener('click', () => {
-          userModal.classList.add('hidden');
-        });
-
-        document.getElementById('btnSaveUserModal').addEventListener('click', () => {
-          const val = inputTag.value.trim().toUpperCase();
-          if (val.length === 4) {
-            userTag = val;
-            localStorage.setItem(DB_KEY_USER, userTag);
-            document.getElementById('headerUserTag').textContent = userTag;
-            userModal.classList.add('hidden');
-            renderLeaderboards();
-          } else {
-            alert("Username must be exactly 4 letters (e.g. RITA)");
-          }
-        });
-      }
-
-      function init() {
-        document.getElementById('headerUserTag').textContent = userTag;
-        saveStreakState();
-        checkDailyStreak();
-        initEvents();
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-      } else {
-        init();
-      }
-    })();
-  </script>
+  <!-- Application Logic -->
+  <script src="app.js"></script>
 </body>
 </html>

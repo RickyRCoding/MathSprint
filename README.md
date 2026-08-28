@@ -1,34 +1,68 @@
-# MathSprint — Minimalist Android App & Database Leaderboard
+# MathSprint — Mental Math Practice with Dynamic Scoring & Global Leaderboard
 
-An ultra-minimalist, distraction-free Android math training application with local & global database leaderboards and 4-letter arcade player tags (e.g. `RITA`).
-
----
-
-## 📱 Features
-- **Ultra-Minimalist Aesthetic**: Monochrome dark theme focused purely on speed, typography, and clean calculation.
-- **4-Letter Player Tag**: Changeable player username tag (default: `RITA`) for competitive records.
-- **Dual Leaderboards**:
-  - **Personal Leaderboard (Default)**: Tracks all your personal session history, accuracy %, speed, dates, and high scores.
-  - **Public Leaderboard (Global)**: View global rankings and records.
-- **Custom Math Workouts**: Addition, subtraction, multiplication, and division with clean integer outputs and 1–5 digit sliders.
-- **Streak & Freeze System**: Daily streak tracker with freeze protection.
+A clean, responsive, modern web application for mental math training featuring **Dynamic Points Per Digit**, **Operation Multipliers**, **Smart Par Speed Bonuses**, **Global Cloud Leaderboard**, and **Cloud Firestore** synchronization — deployed on **Vercel**.
 
 ---
 
-## ⚡ How to Get the APK (0 MB Disk Space on Your Computer)
+## 📂 Project Structure
 
-You can build the `.apk` in 90 seconds in the cloud using GitHub Actions without downloading gigabytes of Android SDKs to your Mac:
+```
+MathSprint/
+├── index.html        # Semantic HTML layout (Setup, Gameplay, Summary, Global Leaderboard, Auth, Profile)
+├── style.css         # Minimalist physical styling, Google Icons integration, animations, and sliders
+├── app.js            # Dynamic difficulty engine, par speed calculator, global leaderboard & cloud sync
+├── vercel.json       # Vercel deployment configuration & security headers
+└── README.md         # Project documentation & setup instructions
+```
 
-1. Create a private GitHub repository for this folder:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit for MathSprint Android App"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/MathSprint.git
-   git push -u origin main
-   ```
-2. On GitHub, go to the **Actions** tab.
-3. The workflow **"Build Minimalist Android APK"** will run automatically.
-4. Once finished (~1-2 min), click on the run and download **`MathSprint-Minimalist-APK`** containing your `app-debug.apk`.
-5. Upload `app-debug.apk` to your Google Drive and install it directly on your Android phone!
+---
+
+## 🚀 Deployment (Vercel)
+
+This application is configured for deployment on **Vercel**.
+
+### Deploy with Vercel CLI:
+```bash
+# Install Vercel CLI (if not already installed)
+npm install -g vercel
+
+# Deploy directly
+vercel
+```
+
+Or connect your GitHub repository to [Vercel Dashboard](https://vercel.com) for automatic CI/CD on every push.
+
+---
+
+## 💻 Local Quick Start
+
+Open [`index.html`](file:///Users/ricardorizk/Desktop/Code/Web%20develoment/MathSprint/index.html) in your browser:
+```bash
+open "/Users/ricardorizk/Desktop/Code/Web develoment/MathSprint/index.html"
+```
+
+---
+
+## ✨ Features & Architecture
+
+### 1. 🏆 Global Leaderboard
+- **Public Player Rankings**: Displays all user profiles from Cloud Firestore with ranking medals (`🥇`, `🥈`, `🥉`, `#4`...).
+- **Sort by Points (★)**: Ranks players from highest to lowest lifetime points earned.
+- **Sort by Streak (🔥)**: Ranks players by current daily streak length.
+- **Active User Highlight**: Tags your profile with a sleek `YOU` badge.
+
+### 2. 🧮 Dynamic Points Per Digit & Multipliers
+$$\text{Base Points} = \Big( (d_1 + d_2) \times 5 \text{ pts} \Big) \times M_{\text{op}}$$
+- ➕ **Addition (`+`)**: `1.0x` Multiplier *(Baseline)*
+- ➖ **Subtraction (`−`)**: `1.5x` Multiplier *(Borrowing)*
+- ✖️ **Multiplication (`×`)**: `3.0x` Multiplier *(Grid calculation)*
+- ➗ **Division (`÷`)**: `5.0x` Multiplier *(Long division)*
+
+### 3. ⚡ Smart Par Speed Multiplier (with Cutoff)
+- **Target Par Time**: $T_{\text{par}} = (d_1 + d_2) \times 3\text{s} \times M_{\text{op}}$
+- **Beating Target Time ($t < T_{\text{par}}$)**: Scales up to **`1.50x` (+50% bonus points)**.
+- **Exceeding Target Time ($t \ge T_{\text{par}}$)**: **`1.00x`** (100% of base points awarded with 0 bonus multiplier).
+
+### 4. 🎯 Ultra-Clean Zero-Distraction Gameplay
+- No popups, meters, or distracting badges while solving equations.
+- Calculation screen focuses solely on the large crisp equation and numeric input.

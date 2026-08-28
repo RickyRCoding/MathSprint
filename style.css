@@ -1,0 +1,199 @@
+/* ==========================================================================
+   MathSprint — Physical Design System & Google Icons Integration
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+:root {
+  --bg-canvas: #0c0d0f;
+  --bg-surface: #141619;
+  --bg-surface-raised: #1a1d21;
+  --bg-surface-active: #22262c;
+  --border-subtle: #23272e;
+  --border-strong: #323742;
+  --text-primary: #f5f2eb;
+  --text-secondary: #9da3af;
+  --text-muted: #646b79;
+  --accent-amber: #f59e0b;
+  --accent-warm: #e07a5f;
+  --accent-cyan: #38bdf8;
+  --accent-emerald: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Google Material Symbols Utility --- */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-block;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 20;
+}
+
+.material-symbols-rounded.filled {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 20;
+}
+
+/* --- Font Utilities --- */
+.font-display {
+  font-family: 'Instrument Serif', Georgia, serif;
+}
+
+.font-data {
+  font-family: 'JetBrains Mono', monospace;
+  font-feature-settings: 'tnum' on, 'zero' on;
+}
+
+/* --- Physical Elevation & Surface Styles --- */
+.surface-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.surface-raised {
+  background-color: var(--bg-surface-raised);
+  border: 1px solid var(--border-subtle);
+}
+
+/* --- Tactile Button Press Mechanics --- */
+.btn-tactile {
+  transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.btn-tactile:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-active);
+}
+
+.btn-tactile:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary-action {
+  background-color: #f5f2eb;
+  color: #0c0d0f;
+  border: 1px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-primary-action:hover {
+  background-color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary-action:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Range Sliders (Tactile Precision Dial) --- */
+input[type=range] {
+  -webkit-appearance: none;
+  background: var(--bg-surface-raised);
+  height: 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 22px;
+  width: 22px;
+  border-radius: 6px;
+  background: #f5f2eb;
+  border: 2px solid #0c0d0f;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  background: #ffffff;
+}
+
+input[type=range]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(0.96);
+}
+
+/* --- Numeric Input Cleaning --- */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* --- Subtle Error Feedback Shake --- */
+@keyframes physicalShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.shake-anim {
+  animation: physicalShake 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* --- View Transitions --- */
+@keyframes editorialReveal {
+  from { 
+    opacity: 0; 
+    transform: translateY(8px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.fade-view {
+  animation: editorialReveal 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Focus States for Accessibility --- */
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid #f5f2eb;
+  outline-offset: 2px;
+}
