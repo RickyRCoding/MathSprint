@@ -1,0 +1,18 @@
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+env.js
+
+# Dependencies & Build
+node_modules/
+.vercel
+dist/
+build/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+*.log

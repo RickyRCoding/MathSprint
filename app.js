@@ -8,16 +8,17 @@
   'use strict';
 
   // ==========================================================================
-  // SECTION 1: FIREBASE CONFIGURATION & PERSISTENT AUTH INITIALIZATION
+  // SECTION 1: ENVIRONMENT CONFIGURATION & PERSISTENT AUTH INITIALIZATION
   // ==========================================================================
+  const env = window.__ENV__ || {};
   const firebaseConfig = {
-    apiKey: "AIzaSyA5EdA0U6o2RQZJ0uGSOEV96WJXUr-miR8",
-    authDomain: "mathsprinting.firebaseapp.com",
-    projectId: "mathsprinting",
-    storageBucket: "mathsprinting.firebasestorage.app",
-    messagingSenderId: "661958692573",
-    appId: "1:661958692573:web:98c9ce789d52816b331534",
-    measurementId: "G-4KX275KHEX"
+    apiKey: env.FIREBASE_API_KEY || "",
+    authDomain: env.FIREBASE_AUTH_DOMAIN || "",
+    projectId: env.FIREBASE_PROJECT_ID || "",
+    storageBucket: env.FIREBASE_STORAGE_BUCKET || "",
+    messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID || "",
+    appId: env.FIREBASE_APP_ID || "",
+    measurementId: env.FIREBASE_MEASUREMENT_ID || ""
   };
 
   let auth = null;
