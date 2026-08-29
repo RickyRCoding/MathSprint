@@ -42,6 +42,10 @@
   // Local storage cache keys
   const DB_KEY_SAVED_USER = 'mathsprint_cached_username';
 
+  // Streak Freeze Rules & Pricing
+  const MAX_FREEZES = 5;
+  const FREEZE_COST = 1500;
+
   // Active User State
   let currentUser = null;
   let currentUsername = localStorage.getItem(DB_KEY_SAVED_USER) || 'Guest';
@@ -152,6 +156,28 @@
     localStorage.setItem('mathsprint_guest_profile', JSON.stringify(userProfile));
   }
 
+  function updateFreezeShopUI() {
+    const freezeCountEl = document.getElementById('profileFreezeCount');
+    const btnBuy = document.getElementById('btnBuyStreakFreeze');
+    if (!freezeCountEl || !btnBuy) return;
+
+    freezeCountEl.textContent = `${userProfile.streakFreezes} / ${MAX_FREEZES}`;
+
+    if (userProfile.streakFreezes >= MAX_FREEZES) {
+      btnBuy.disabled = true;
+      btnBuy.className = 'px-3 py-1 rounded bg-[#141619] border border-[#23272e] text-[#646b79] font-bold text-[11px] cursor-not-allowed';
+      btnBuy.innerHTML = '<span>Max Capacity (5/5)</span>';
+    } else if (userProfile.points < FREEZE_COST) {
+      btnBuy.disabled = true;
+      btnBuy.className = 'px-3 py-1 rounded bg-[#141619] border border-[#23272e] text-[#646b79] font-bold text-[11px] cursor-not-allowed';
+      btnBuy.innerHTML = `<span>Need ${(FREEZE_COST - userProfile.points).toLocaleString()} ★</span>`;
+    } else {
+      btnBuy.disabled = false;
+      btnBuy.className = 'btn-tactile px-3 py-1 rounded bg-[#1a1d21] border border-[#323742] hover:border-cyan-500/50 text-[#f5f2eb] font-bold text-[11px] flex items-center gap-1 cursor-pointer';
+      btnBuy.innerHTML = `<span class="material-symbols-rounded text-cyan-400 text-[14px]">add</span><span>Buy (${FREEZE_COST.toLocaleString()} ★)</span>`;
+    }
+  }
+
   function updateUserDisplayEverywhere() {
     const headerUsername = document.getElementById('headerUsername');
     const summaryUsername = document.getElementById('summaryUsername');
@@ -160,6 +186,7 @@
     if (summaryUsername) summaryUsername.textContent = currentUsername;
 
     updateHeaderUI();
+    updateFreezeShopUI();
   }
 
   async function signInWithGoogle() {
@@ -741,13 +768,23 @@
     const finalPtsPerQuestion = Math.round(basePtsPerQuestion * speedMultiplier);
     const totalScore = session.correctCount * finalPtsPerQuestion;
 
-    // Streak Update
+    // Streak Update & 7-Day Milestone Check
     const today = getTodayString();
     let streakUpdated = false;
     if (userProfile.lastActiveDate !== today) {
       userProfile.streakCount++;
       userProfile.lastActiveDate = today;
       streakUpdated = true;
+
+      // 7-Day Milestone Freeze Reward
+      if (userProfile.streakCount > 0 && userProfile.streakCount % 7 === 0) {
+        if (userProfile.streakFreezes < MAX_FREEZES) {
+          userProfile.streakFreezes++;
+          showToast(`🔥 ${userProfile.streakCount}-Day Streak Milestone! Earned +1 Streak Freeze ❄️`);
+        } else {
+          showToast(`🔥 ${userProfile.streakCount}-Day Streak Milestone reached! (Freezes at max capacity 5/5)`);
+        }
+      }
     }
 
     // Session Record Object
@@ -938,6 +975,7 @@
     document.getElementById('profileAccountEmail').textContent = currentUser ? currentUser.email : 'Guest';
     document.getElementById('profileTotalWorkouts').textContent = userProfile.totalWorkouts;
     document.getElementById('profilePointsBalance').textContent = `${userProfile.points.toLocaleString()} ★`;
+    updateFreezeShopUI();
 
     profileSettingsModal.classList.remove('hidden');
     input.focus();
@@ -1175,6 +1213,31 @@
     document.getElementById('btnSaveProfileUsername').addEventListener('click', () => {
       const val = document.getElementById('inputProfileUsername').value;
       updateCustomUsername(val);
+    });
+
+    // Buy Streak Freeze in Profile Store
+    document.getElementById('btnBuyStreakFreeze').addEventListener('click', () => {
+      if (userProfile.streakFreezes >= MAX_FREEZES) {
+        showToast("You are already at max Streak Freeze capacity (5/5).");
+        return;
+      }
+      if (userProfile.points < FREEZE_COST) {
+        showToast(`You need at least ${FREEZE_COST.toLocaleString()} points to purchase a Freeze.`);
+        return;
+      }
+      userProfile.points -= FREEZE_COST;
+      userProfile.streakFreezes++;
+      playSound('correct');
+      showToast("Purchased 1 Streak Freeze for 1,500 Points! ❄️");
+      saveGuestProfile();
+      if (currentUser && db) {
+        db.collection("users").doc(currentUser.uid).set({
+          points: userProfile.points,
+          streakFreezes: userProfile.streakFreezes
+        }, { merge: true });
+      }
+      updateUserDisplayEverywhere();
+      updateFreezeShopUI();
     });
 
     // Email/Password Form Submit
