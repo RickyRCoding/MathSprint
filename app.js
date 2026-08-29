@@ -12,13 +12,13 @@
   // ==========================================================================
   const env = window.__ENV__ || {};
   const firebaseConfig = {
-    apiKey: env.FIREBASE_API_KEY || "",
-    authDomain: env.FIREBASE_AUTH_DOMAIN || "",
-    projectId: env.FIREBASE_PROJECT_ID || "",
-    storageBucket: env.FIREBASE_STORAGE_BUCKET || "",
-    messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID || "",
-    appId: env.FIREBASE_APP_ID || "",
-    measurementId: env.FIREBASE_MEASUREMENT_ID || ""
+    apiKey: env.FIREBASE_API_KEY || "AIzaSyA5EdA0U6o2RQZJ0uGSOEV96WJXUr-miR8",
+    authDomain: env.FIREBASE_AUTH_DOMAIN || "mathsprinting.firebaseapp.com",
+    projectId: env.FIREBASE_PROJECT_ID || "mathsprinting",
+    storageBucket: env.FIREBASE_STORAGE_BUCKET || "mathsprinting.firebasestorage.app",
+    messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID || "661958692573",
+    appId: env.FIREBASE_APP_ID || "1:661958692573:web:98c9ce789d52816b331534",
+    measurementId: env.FIREBASE_MEASUREMENT_ID || "G-4KX275KHEX"
   };
 
   let auth = null;
@@ -45,6 +45,7 @@
   // Streak Freeze Rules & Pricing
   const MAX_FREEZES = 5;
   const FREEZE_COST = 1500;
+  const MAX_SAVED_SESSIONS = 5;
 
   // Active User State
   let currentUser = null;
@@ -115,18 +116,25 @@
       const btnOpenProfile = document.getElementById('btnOpenProfileSettings');
 
       if (user) {
-        currentUsername = sanitizeUsername(user.displayName);
+        if (user.displayName) {
+          currentUsername = sanitizeUsername(user.displayName);
+        } else if (user.email) {
+          currentUsername = sanitizeUsername(user.email);
+        } else {
+          currentUsername = 'Player';
+        }
         localStorage.setItem(DB_KEY_SAVED_USER, currentUsername);
         
-        btnOpenAuth.classList.add('hidden');
-        btnOpenProfile.classList.remove('hidden');
+        if (btnOpenAuth) btnOpenAuth.classList.add('hidden');
+        if (btnOpenProfile) btnOpenProfile.classList.remove('hidden');
 
         await syncUserProfileFromFirestore(user.uid);
+        evaluateDailyStreak();
       } else {
         currentUsername = 'Guest';
         localStorage.removeItem(DB_KEY_SAVED_USER);
-        btnOpenAuth.classList.remove('hidden');
-        btnOpenProfile.classList.add('hidden');
+        if (btnOpenAuth) btnOpenAuth.classList.remove('hidden');
+        if (btnOpenProfile) btnOpenProfile.classList.add('hidden');
 
         loadGuestProfile();
       }
@@ -189,64 +197,26 @@
     updateFreezeShopUI();
   }
 
-  async function signInWithGoogle() {
-    if (!auth) return;
-    try {
-      clearAuthError();
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-      const provider = new firebase.auth.GoogleAuthProvider();
-      const result = await auth.signInWithPopup(provider);
-      const user = result.user;
-      
-      let cleanName = sanitizeUsername(user.displayName);
-      currentUsername = cleanName;
-      localStorage.setItem(DB_KEY_SAVED_USER, currentUsername);
-
-      if (db) {
-        const userDoc = await db.collection("users").doc(user.uid).get();
-        if (userDoc.exists && userDoc.data().username) {
-          currentUsername = userDoc.data().username;
-          localStorage.setItem(DB_KEY_SAVED_USER, currentUsername);
-        } else {
-          await db.collection("users").doc(user.uid).set({
-            uid: user.uid,
-            username: currentUsername,
-            email: user.email,
-            streakCount: 0,
-            streakFreezes: 2,
-            points: 0,
-            totalWorkouts: 0,
-            totalQuestions: 0,
-            totalCorrect: 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-        }
-      }
-
-      closeAuthModal();
-      updateUserDisplayEverywhere();
-      showToast(`Welcome back, ${currentUsername}! 👋`);
-    } catch (err) {
-      showAuthError(err.message);
-    }
-  }
-
   async function signInWithEmail(email, password) {
     if (!auth) return;
     try {
       clearAuthError();
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       const result = await auth.signInWithEmailAndPassword(email, password);
+      currentUser = result.user;
       
       if (db) {
         const userDoc = await db.collection("users").doc(result.user.uid).get();
         if (userDoc.exists && userDoc.data().username) {
           currentUsername = userDoc.data().username;
         } else {
-          currentUsername = sanitizeUsername(result.user.displayName);
+          currentUsername = result.user.displayName ? sanitizeUsername(result.user.displayName) : sanitizeUsername(email);
         }
         localStorage.setItem(DB_KEY_SAVED_USER, currentUsername);
       }
+
+      await syncUserProfileFromFirestore(result.user.uid);
+      evaluateDailyStreak();
 
       closeAuthModal();
       updateUserDisplayEverywhere();
@@ -262,14 +232,17 @@
       clearAuthError();
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       const cred = await auth.createUserWithEmailAndPassword(email, password);
+      currentUser = cred.user;
       
-      const cleanUsername = sanitizeUsername(username);
+      const cleanUsername = sanitizeUsername(username) || sanitizeUsername(email);
       currentUsername = cleanUsername;
       localStorage.setItem(DB_KEY_SAVED_USER, currentUsername);
 
-      await cred.user.updateProfile({
-        displayName: cleanUsername
-      });
+      try {
+        await cred.user.updateProfile({
+          displayName: cleanUsername
+        });
+      } catch (e) {}
 
       if (db) {
         await db.collection("users").doc(cred.user.uid).set({
@@ -285,6 +258,8 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
       }
+
+      await syncUserProfileFromFirestore(cred.user.uid);
 
       closeAuthModal();
       updateUserDisplayEverywhere();
@@ -386,6 +361,16 @@
     userProfile.totalCorrect += record.correctCount;
     userProfile.points += record.score;
 
+    // Cache recent session in local history (strictly max 5 items)
+    try {
+      const history = JSON.parse(localStorage.getItem('mathsprint_recent_sessions') || '[]');
+      history.unshift(record);
+      while (history.length > MAX_SAVED_SESSIONS) {
+        history.pop();
+      }
+      localStorage.setItem('mathsprint_recent_sessions', JSON.stringify(history));
+    } catch (e) {}
+
     if (!currentUser) {
       saveGuestProfile();
       updateHeaderUI();
@@ -396,6 +381,7 @@
       try {
         const userDocRef = db.collection("users").doc(currentUser.uid);
 
+        // 1. Add new session document
         await userDocRef.collection("sessions").add({
           ...record,
           uid: currentUser.uid,
@@ -403,6 +389,26 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
+        // 2. Automatically trim older sessions beyond the latest 5 in Firestore
+        try {
+          const sessionsSnapshot = await userDocRef.collection("sessions")
+            .orderBy("timestamp", "desc")
+            .get();
+
+          if (sessionsSnapshot.size > MAX_SAVED_SESSIONS) {
+            const batch = db.batch();
+            const docsToDelete = sessionsSnapshot.docs.slice(MAX_SAVED_SESSIONS);
+            docsToDelete.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            await batch.commit();
+            console.log(`Auto-trimmed ${docsToDelete.length} older session(s) from Firestore to conserve quota.`);
+          }
+        } catch (trimErr) {
+          console.warn("Session trimming note:", trimErr);
+        }
+
+        // 3. Update root user profile document
         await userDocRef.set({
           uid: currentUser.uid,
           username: currentUsername,
@@ -416,7 +422,7 @@
           lastWorkoutAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        console.log("Workout session saved for user in Firestore.");
+        console.log("Workout session saved and capped at 5 records in Firestore.");
       } catch (err) {
         console.error("Firestore user session write error:", err);
       }
@@ -969,16 +975,116 @@
     clearAuthError();
   }
 
+  async function renderProfileRecentSessions() {
+    const listEl = document.getElementById('profileRecentSessionsList');
+    if (!listEl) return;
+
+    let sessions = [];
+
+    // Fetch from Firestore if logged in
+    if (currentUser && db) {
+      try {
+        const snapshot = await db.collection("users")
+          .doc(currentUser.uid)
+          .collection("sessions")
+          .orderBy("timestamp", "desc")
+          .limit(5)
+          .get();
+        if (!snapshot.empty) {
+          sessions = snapshot.docs.map(doc => doc.data());
+        }
+      } catch (e) {
+        console.warn("Could not fetch remote sessions:", e);
+      }
+    }
+
+    // Fallback to local recent sessions
+    if (sessions.length === 0) {
+      try {
+        sessions = JSON.parse(localStorage.getItem('mathsprint_recent_sessions') || '[]').slice(0, 5);
+      } catch (e) {
+        sessions = [];
+      }
+    }
+
+    if (sessions.length === 0) {
+      listEl.innerHTML = '<div class="py-4 text-center text-[#646b79] text-xs font-data">No workout sessions logged yet. Complete a workout to see activity!</div>';
+      return;
+    }
+
+    listEl.innerHTML = sessions.map(s => {
+      const dateStr = s.date || 'Recent';
+      const modeStr = s.mode || 'Practice Session';
+      const scoreStr = s.score ? `+${s.score.toLocaleString()} PTS` : '+0 PTS';
+      const accuracyStr = s.accuracy || '100%';
+      const speedStr = s.speed || '';
+
+      return `
+        <div class="py-2 px-1 flex items-center justify-between text-xs font-data">
+          <div class="space-y-0.5">
+            <div class="font-bold text-[#f5f2eb] text-[11px]">${modeStr}</div>
+            <div class="text-[10px] text-[#646b79] flex items-center gap-1.5">
+              <span>${dateStr}</span>
+              <span>·</span>
+              <span class="text-emerald-400 font-semibold">${accuracyStr}</span>
+              ${speedStr ? `<span>·</span><span>${speedStr} pace</span>` : ''}
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold text-amber-400 text-xs">${scoreStr}</div>
+            <div class="text-[9px] text-[#646b79] uppercase tracking-wider">${s.correctCount || 0}/${s.questionsAnswered || 0} correct</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
   function openProfileSettingsModal() {
     const input = document.getElementById('inputProfileUsername');
-    input.value = currentUsername !== 'Guest' ? currentUsername : '';
-    document.getElementById('profileAccountEmail').textContent = currentUser ? currentUser.email : 'Guest';
-    document.getElementById('profileTotalWorkouts').textContent = userProfile.totalWorkouts;
-    document.getElementById('profilePointsBalance').textContent = `${userProfile.points.toLocaleString()} ★`;
+    if (input) input.value = currentUsername !== 'Guest' ? currentUsername : '';
+
+    const activeUser = currentUser || (auth && auth.currentUser);
+    const isAuthed = !!activeUser;
+    const badgeEl = document.getElementById('profileAccountBadge');
+    if (badgeEl) {
+      badgeEl.textContent = isAuthed ? 'Cloud Synced' : 'Guest Profile';
+      badgeEl.className = isAuthed 
+        ? 'text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/50 border border-emerald-800 text-emerald-300 font-semibold'
+        : 'text-[9px] px-1.5 py-0.5 rounded bg-[#1a1d21] border border-[#323742] text-[#9da3af] font-semibold';
+    }
+
+    const emailEl = document.getElementById('profileAccountEmail');
+    if (emailEl) {
+      emailEl.textContent = (activeUser && activeUser.email) ? activeUser.email : 'Local Guest Account (Sign in to sync cloud data)';
+    }
+
+    // Core Metrics
+    const totalQ = userProfile.totalQuestions || 0;
+    const totalC = userProfile.totalCorrect || 0;
+    const totalMiss = Math.max(0, totalQ - totalC);
+    const accuracyPct = totalQ > 0 ? ((totalC / totalQ) * 100).toFixed(1) : '100.0';
+
+    document.getElementById('profilePointsBalance').textContent = `${(userProfile.points || 0).toLocaleString()} ★`;
+    document.getElementById('profileStreakCount').textContent = `${userProfile.streakCount || 0} Days`;
+    document.getElementById('profileLastActiveSubtitle').textContent = userProfile.lastActiveDate ? `Active: ${userProfile.lastActiveDate}` : 'Active today';
+    document.getElementById('profileLifetimeAccuracy').textContent = `${accuracyPct}%`;
+    document.getElementById('profileAccuracyRatio').textContent = `${totalC.toLocaleString()} / ${totalQ.toLocaleString()} Solved`;
+    document.getElementById('profileTotalWorkouts').textContent = (userProfile.totalWorkouts || 0).toLocaleString();
+    document.getElementById('profileTotalQuestionsSubtitle').textContent = `${totalQ.toLocaleString()} Problems total`;
+
+    // Accuracy Ratio Bar
+    document.getElementById('profileCorrectCountText').textContent = `${totalC.toLocaleString()} Correct`;
+    document.getElementById('profileIncorrectCountText').textContent = `${totalMiss.toLocaleString()} Missed`;
+    const barFill = document.getElementById('profileAccuracyBarFill');
+    if (barFill) {
+      barFill.style.width = `${Math.max(4, parseFloat(accuracyPct))}%`;
+    }
+
     updateFreezeShopUI();
+    renderProfileRecentSessions();
 
     profileSettingsModal.classList.remove('hidden');
-    input.focus();
+    if (input) input.focus();
   }
 
   function closeProfileSettingsModal() {
@@ -1202,8 +1308,6 @@
 
     document.getElementById('tabAuthSignIn').addEventListener('click', () => setAuthMode('signin'));
     document.getElementById('tabAuthSignUp').addEventListener('click', () => setAuthMode('signup'));
-
-    document.getElementById('btnGoogleSignIn').addEventListener('click', signInWithGoogle);
 
     // Profile Settings Triggers
     document.getElementById('btnOpenProfileSettings').addEventListener('click', openProfileSettingsModal);
