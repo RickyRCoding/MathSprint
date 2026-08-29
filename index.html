@@ -439,7 +439,12 @@
 
         <div class="space-y-1">
           <label class="text-[10px] text-[#9da3af] uppercase font-semibold">Password</label>
-          <input id="inputAuthPassword" type="password" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2 rounded-lg bg-[#0c0d0f] border border-[#323742] text-white text-xs focus:outline-none focus:border-white" />
+          <div class="relative flex items-center">
+            <input id="inputAuthPassword" type="password" required minlength="6" placeholder="••••••••" class="w-full pl-3 pr-10 py-2 rounded-lg bg-[#0c0d0f] border border-[#323742] text-white text-xs focus:outline-none focus:border-white" />
+            <button id="btnTogglePasswordVisibility" type="button" class="absolute right-2 text-[#9da3af] hover:text-white flex items-center justify-center p-1 cursor-pointer transition-colors" title="Show password" aria-label="Toggle password visibility">
+              <span id="iconPasswordToggle" class="material-symbols-rounded text-[18px]">visibility</span>
+            </button>
+          </div>
         </div>
 
         <div id="authErrorMessage" class="hidden p-2 rounded bg-red-950/80 border border-red-800 text-red-200 text-[11px]"></div>
@@ -460,11 +465,8 @@
       
       <!-- Top Title & Account Header -->
       <div class="flex justify-between items-start border-b border-[#23272e] pb-3">
-        <div class="space-y-1">
-          <div class="flex items-center gap-2">
-            <h3 class="text-sm sm:text-base font-bold text-[#f5f2eb] uppercase tracking-wider">Account & Lifetime Stats</h3>
-            <span id="profileAccountBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-[#1a1d21] border border-[#323742] text-[#9da3af] font-semibold">Guest</span>
-          </div>
+        <div class="space-y-0.5">
+          <h3 class="text-sm sm:text-base font-bold text-[#f5f2eb] uppercase tracking-wider">Account & Lifetime Stats</h3>
           <p id="profileAccountEmail" class="text-[11px] text-[#9da3af] truncate max-w-[240px]">user@example.com</p>
         </div>
         <button id="btnCloseProfileSettings" class="text-[#9da3af] hover:text-white text-base p-1" aria-label="Close Profile">✕</button>

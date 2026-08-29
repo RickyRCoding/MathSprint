@@ -272,7 +272,7 @@
   async function updateCustomUsername(newName) {
     const cleanName = sanitizeUsername(newName);
     if (!cleanName || cleanName === 'Player') {
-      alert("Please enter a valid username.");
+      showToast("Please enter a valid username.");
       return;
     }
 
@@ -498,10 +498,24 @@
     }
   }
 
+  let toastTimer = null;
+
   function showToast(msg) {
     const t = document.getElementById('toastAlert');
-    document.getElementById('toastAlertText').textContent = msg;
+    const txt = document.getElementById('toastAlertText');
+    if (!t || !txt) return;
+
+    txt.textContent = msg;
     t.classList.remove('hidden');
+
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+    }
+
+    toastTimer = setTimeout(() => {
+      t.classList.add('hidden');
+      toastTimer = null;
+    }, 2000);
   }
 
   // ==========================================================================
@@ -699,8 +713,19 @@
 
     input.value = '';
     input.disabled = false;
-    input.focus();
+    focusAnswerInput();
     session.isReviewing = false;
+  }
+
+  function focusAnswerInput() {
+    const input = document.getElementById('inputAnswer');
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      setTimeout(() => input.focus({ preventScroll: true }), 25);
+      setTimeout(() => input.focus({ preventScroll: true }), 80);
+    });
   }
 
   function handleAnswerSubmit() {
@@ -712,7 +737,7 @@
     const input = document.getElementById('inputAnswer');
     const raw = input.value.trim();
     if (raw === '') { 
-      input.focus(); 
+      focusAnswerInput(); 
       return; 
     }
 
@@ -733,6 +758,7 @@
           completeSession();
         } else {
           nextQuestion();
+          focusAnswerInput();
         }
       }, 400);
 
@@ -755,6 +781,7 @@
       completeSession();
     } else {
       nextQuestion();
+      focusAnswerInput();
     }
   }
 
@@ -965,14 +992,25 @@
   const profileSettingsModal = document.getElementById('profileSettingsModal');
   let authMode = 'signin';
 
+  function resetPasswordVisibility() {
+    const inputPass = document.getElementById('inputAuthPassword');
+    const iconToggle = document.getElementById('iconPasswordToggle');
+    const btnToggle = document.getElementById('btnTogglePasswordVisibility');
+    if (inputPass) inputPass.type = 'password';
+    if (iconToggle) iconToggle.textContent = 'visibility';
+    if (btnToggle) btnToggle.title = 'Show password';
+  }
+
   function openAuthModal() {
     authModal.classList.remove('hidden');
     clearAuthError();
+    resetPasswordVisibility();
   }
 
   function closeAuthModal() {
     authModal.classList.add('hidden');
     clearAuthError();
+    resetPasswordVisibility();
   }
 
   async function renderProfileRecentSessions() {
@@ -1044,15 +1082,6 @@
     if (input) input.value = currentUsername !== 'Guest' ? currentUsername : '';
 
     const activeUser = currentUser || (auth && auth.currentUser);
-    const isAuthed = !!activeUser;
-    const badgeEl = document.getElementById('profileAccountBadge');
-    if (badgeEl) {
-      badgeEl.textContent = isAuthed ? 'Cloud Synced' : 'Guest Profile';
-      badgeEl.className = isAuthed 
-        ? 'text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/50 border border-emerald-800 text-emerald-300 font-semibold'
-        : 'text-[9px] px-1.5 py-0.5 rounded bg-[#1a1d21] border border-[#323742] text-[#9da3af] font-semibold';
-    }
-
     const emailEl = document.getElementById('profileAccountEmail');
     if (emailEl) {
       emailEl.textContent = (activeUser && activeUser.email) ? activeUser.email : 'Local Guest Account (Sign in to sync cloud data)';
@@ -1084,7 +1113,6 @@
     renderProfileRecentSessions();
 
     profileSettingsModal.classList.remove('hidden');
-    if (input) input.focus();
   }
 
   function closeProfileSettingsModal() {
@@ -1111,6 +1139,7 @@
     const btnSubmit = document.getElementById('btnSubmitAuthForm');
 
     clearAuthError();
+    resetPasswordVisibility();
 
     if (mode === 'signup') {
       tabUp.className = 'py-1.5 rounded bg-[#f5f2eb] text-[#0c0d0f] transition-all font-bold';
@@ -1227,7 +1256,7 @@
     // Finish Infinite Workout
     document.getElementById('btnFinishInfiniteSession').addEventListener('click', () => {
       if (session.answeredCount === 0) {
-        alert("Answer at least 1 question to record your workout.");
+        showToast("Answer at least 1 question to record your workout.");
         return;
       }
       playSound('tap');
@@ -1238,6 +1267,12 @@
       if (e.key === 'Enter') {
         e.preventDefault();
         handleAnswerSubmit();
+      }
+    });
+
+    document.getElementById('gameCard').addEventListener('click', (e) => {
+      if (!e.target.closest('button')) {
+        focusAnswerInput();
       }
     });
 
@@ -1308,6 +1343,20 @@
 
     document.getElementById('tabAuthSignIn').addEventListener('click', () => setAuthMode('signin'));
     document.getElementById('tabAuthSignUp').addEventListener('click', () => setAuthMode('signup'));
+
+    // Password Visibility Toggle
+    const btnTogglePass = document.getElementById('btnTogglePasswordVisibility');
+    if (btnTogglePass) {
+      btnTogglePass.addEventListener('click', () => {
+        const inputPass = document.getElementById('inputAuthPassword');
+        const iconToggle = document.getElementById('iconPasswordToggle');
+        if (!inputPass || !iconToggle) return;
+        const isMasked = inputPass.type === 'password';
+        inputPass.type = isMasked ? 'text' : 'password';
+        iconToggle.textContent = isMasked ? 'visibility_off' : 'visibility';
+        btnTogglePass.title = isMasked ? 'Hide password' : 'Show password';
+      });
+    }
 
     // Profile Settings Triggers
     document.getElementById('btnOpenProfileSettings').addEventListener('click', openProfileSettingsModal);
